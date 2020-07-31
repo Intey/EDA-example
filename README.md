@@ -1,5 +1,31 @@
 # WTF?
 
+## How to start
+
+```bash
+# any term
+docker run -d --hostname my-rabbit --name some-rabbit -p 5672:5672 -p 8080:15672
+rabbitmq:management
+
+# term 1
+cd datagen
+poetry install && poetry shell
+QUEUE_URL='localhost:5672' uvicorn datagen:app --port 8002 --reload
+
+# term 2
+cd distributor
+poetry install && poetry shell
+QUEUE_URL=localhost:5672 python distributor.py
+
+
+# term 3
+cd processor
+poetry install && poetry shell
+QUEUE_URL=localhost:5672 python processor.py
+```
+
+Then POST to /api/objects without payload with curl/postman/etc.
+And you can see logs on each term
 
 ## Bus
 
