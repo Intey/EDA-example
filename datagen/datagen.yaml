@@ -1,0 +1,33 @@
+---
+
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    labels:
+      app: datagen
+    name: datagen
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: datagen
+    template:
+      metadata:
+        labels:
+          app: datagen
+      spec:
+        containers:
+        - name: datagen
+          image: datagen
+          env:
+            - name: MQ_URL
+              value: ""
+          resources:
+            limits:
+              memory: 512Mi
+              cpu: 500m
+            requests:
+              cpu: 50m
+              memory: 128Mi
+          ports:
+            - containerPort: 80

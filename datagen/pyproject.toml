@@ -2,7 +2,7 @@
 name = "service"
 version = "0.1.0"
 description = ""
-authors = ["intey <churin.d.r@sberbank.ru>"]
+authors = ["intey <ziexe0@gmail.com>"]
 
 [tool.poetry.dependencies]
 python = "^3.8"
@@ -11,6 +11,7 @@ fastapi = "^0.60.1"
 pydantic = "^1.6.1"
 pika = "^1.1.0"
 mimesis = "^4.0.0"
+uvicorn = "^0.11.6"
 
 [tool.poetry.dev-dependencies]
 mypy = "^0.782"
