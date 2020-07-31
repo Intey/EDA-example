@@ -1,5 +1,8 @@
 # WTF?
 
+EDA: Event Driven Architecture, where communication between services(micro?) go
+though rabbitmq or similar.
+
 ## How to start
 
 ```bash
