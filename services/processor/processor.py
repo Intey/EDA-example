@@ -58,7 +58,7 @@ class Processor:
         connection = pika.BlockingConnection(pika.ConnectionParameters(host, port))
         channel = connection.channel()
         channel.exchange_declare(exchange=EXCHANGE, exchange_type="topic")
-        result = channel.queue_declare("")
+        result = channel.queue_declare("processor_results")
         channel.queue_bind(
             exchange=EXCHANGE, queue=result.method.queue, routing_key=Routes.PROCESSING
         )
