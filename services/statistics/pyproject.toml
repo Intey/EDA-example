@@ -7,7 +7,6 @@ authors = ["intey <ziexe0@gmail.com>"]
 [tool.poetry.dependencies]
 python = "^3.8"
 rabbitmq = "^0.2.0"
-fastapi = "^0.59.0"
 pika = "^1.1.0"
 
 [tool.poetry.dev-dependencies]
