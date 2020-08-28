@@ -1,7 +1,0 @@
-processor.py
-setup.py
-processor.egg-info/PKG-INFO
-processor.egg-info/SOURCES.txt
-processor.egg-info/dependency_links.txt
-processor.egg-info/requires.txt
-processor.egg-info/top_level.txt
