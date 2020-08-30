@@ -1,9 +1,9 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-import pika
-from os import environ
 import mimesis
 import json
+
+from kafka import KafkaProducer
 
 gen = mimesis.Generic()
 
@@ -12,11 +12,19 @@ class Object(BaseModel):
     id: int
     name: str
     content: str
+    type: str = "object"
+
+
+class MyKafkaProducer:
+    def __init__(self):
+        self.producer = KafkaProducer(bootstrap_servers="localhost:9092")
+
+    def send(self, obj: Object):
+        f = self.producer.send("objects", value=json.dumps(obj.dict()).encode("utf8"))
+        f.get(timeout=60)
 
 
 app = FastAPI()
-
-EXCHANGE = "ebs"
 
 
 @app.get("/objects/{object_id}")
@@ -30,10 +38,8 @@ def create():
     Generate new object. expects that called from Cron Job
     """
     obj = generate()
-    global connection
-    host, port = environ.get("QUEUE_URL").split(":")
-    connection = pika.BlockingConnection(pika.ConnectionParameters(host, port))
-    send_to_queue(connection, obj)
+    prod = MyKafkaProducer()
+    prod.send(obj)
 
 
 def generate() -> Object:
@@ -42,13 +48,3 @@ def generate() -> Object:
         name=gen.text.word(),
         content=gen.text.word(),
     )
-
-
-def send_to_queue(connection, obj: Object):
-    print("send message", obj)
-    channel = connection.channel()
-    channel.exchange_declare(exchange=EXCHANGE, exchange_type="topic")
-    channel.basic_publish(
-        exchange=EXCHANGE, routing_key="objects", body=json.dumps(obj.dict())
-    )
-    connection.close()
