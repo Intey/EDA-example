@@ -28,7 +28,7 @@ class MQKafka:
 
     def accept(self, callback):
         self.consumer = kafka.KafkaConsumer(
-            Routes.OBJECTS, enable_auto_commit=False, group_id="distributor"
+            Routes.OBJECTS, enable_auto_commit=False, group_id="distributors"
         )
         for msg in self.consumer:
             callback(json.loads(msg.value.decode("utf-8")))
