@@ -8,6 +8,8 @@ authors = ["intey <ziexe0@gmail.com>"]
 python = "^3.8"
 rabbitmq = "^0.2.0"
 pika = "^1.1.0"
+kafka-python = "^2.0.1"
+pydantic = "^1.6.1"
 
 [tool.poetry.dev-dependencies]
 mypy = "^0.782"
