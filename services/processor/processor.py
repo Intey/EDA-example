@@ -1,10 +1,10 @@
-import pika
-from os import environ
+import kafka
 import json
 import time
 from uuid import uuid4
 from tqdm import tqdm
 from random import randint
+from pydantic import BaseModel
 
 
 class Routes:
@@ -17,63 +17,61 @@ class MessageTypes:
     finish = "END_PROCESSING"
 
 
-EXCHANGE = "ebs"
+class Message(BaseModel):
+    message_type: str
+    object_id: str
+    spend_time: int = 0
+
+
+class MQKafka:
+    def __init__(self, consume_route: str, group_id: str = None):
+        self.group_id = group_id
+        self.consume_route = consume_route
+        self.producer = kafka.KafkaProducer(
+            bootstrap_servers="localhost:9092",
+            value_serializer=lambda v: json.dumps(v).encode("utf-8"),
+        )
+
+    def send(self, obj: dict, route: str):
+        f = self.producer.send(route, value=obj)
+        f.get(timeout=20)
+
+    def accept(self, callback):
+        self.consumer = kafka.KafkaConsumer(
+            self.consume_route,
+            group_id=self.group_id,
+            value_deserializer=lambda v: json.loads(v.decode("uft-8")),
+        )
+        for msg in self.consumer:
+            callback(msg.value)
 
 
 class Processor:
     def __init__(self, id_: str):
-        host, port = environ.get("QUEUE_URL").split(":")
-        self.conn = pika.BlockingConnection(pika.ConnectionParameters(host, port))
-        self.channel = self.conn.channel()
         self.id = id_
+        self.connector = MQKafka(Routes.TASK_REQUESTS, "processors")
 
     def consume(self):
-        self.channel.exchange_declare(exchange=EXCHANGE, exchange_type="topic")
-        result = self.channel.queue_declare("processor_consume")
-        queue_name = result.method.queue
-        self.channel.queue_bind(
-            exchange=EXCHANGE, queue=queue_name, routing_key=Routes.TASK_REQUESTS
+        self.connector.accept(self.callback)
+
+    def callback(self, data: dict):
+        print(f"processor {self.id} got message '{data}'")
+        spend_time = randint(3, 10) * 10
+        msg = Message(message_type=MessageTypes.start, object_id=data["id"])
+        self.connector.send(msg.dict(), Routes.PROCESSING)
+        for i in tqdm(range(spend_time)):
+            time.sleep(0.1)
+        print(f"processor {self.id} finish in {spend_time}")
+        msg = Message(
+            message_type=MessageTypes.finish,
+            object_id=data["id"],
+            spend_time=spend_time,
         )
-
-        self.channel.basic_consume(
-            queue=queue_name, on_message_callback=self.callback, auto_ack=True
-        )
-
-        self.channel.start_consuming()
-
-    def callback(self, ch, method, properties, body):
-        data = json.loads(body.decode("utf8"))
-        print(f"processor {self.id} got message with route {method.routing_key}")
-        if method.routing_key == Routes.TASK_REQUESTS:
-            print("process", data)
-            spend_time = randint(3, 10) * 10
-
-            self.send_to_queue(MessageTypes.start, data["id"])
-            for i in tqdm(range(spend_time)):
-                time.sleep(0.1)
-            self.send_to_queue(MessageTypes.finish, data["id"], spend_time)
-
-    def send_to_queue(self, msg_type: str, obj_id: str, time=None):
-        host, port = environ.get("QUEUE_URL").split(":")
-        connection = pika.BlockingConnection(pika.ConnectionParameters(host, port))
-        channel = connection.channel()
-        channel.exchange_declare(exchange=EXCHANGE, exchange_type="topic")
-        result = channel.queue_declare("processor_results")
-        channel.queue_bind(
-            exchange=EXCHANGE, queue=result.method.queue, routing_key=Routes.PROCESSING
-        )
-
-        data = dict(type=msg_type, target=obj_id, processor=self.id)
-        if time is None:
-            data["spend"] = time
-
-        channel.basic_publish(
-            exchange=EXCHANGE, routing_key=Routes.PROCESSING, body=json.dumps(data)
-        )
-        connection.close()
+        self.connector.send(msg.dict(), Routes.PROCESSING)
 
 
 if __name__ == "__main__":
     id_ = uuid4().hex
     p = Processor(id_)
+    print("start consume")
     p.consume()
