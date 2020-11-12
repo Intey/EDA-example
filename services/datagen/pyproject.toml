@@ -11,7 +11,7 @@ fastapi = "^0.60.1"
 pydantic = "^1.6.1"
 pika = "^1.1.0"
 mimesis = "^4.0.0"
-uvicorn = "^0.11.6"
+uvicorn = "^0.11.7"
 kafka-python = "^2.0.1"
 
 [tool.poetry.dev-dependencies]
