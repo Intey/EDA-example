@@ -18,7 +18,7 @@ class MessageTypes:
 
 
 class Message(BaseModel):
-    message_type: str
+    type: str
     object_id: str
     spend_time: int = 0
 
@@ -40,7 +40,7 @@ class MQKafka:
         self.consumer = kafka.KafkaConsumer(
             self.consume_route,
             group_id=self.group_id,
-            value_deserializer=lambda v: json.loads(v.decode("uft-8")),
+            value_deserializer=lambda v: json.loads(v.decode("utf-8")),
         )
         for msg in self.consumer:
             callback(msg.value)
@@ -49,23 +49,22 @@ class MQKafka:
 class Processor:
     def __init__(self, id_: str):
         self.id = id_
-        self.connector = MQKafka(Routes.TASK_REQUESTS, "processors")
+        self.connector = MQKafka(Routes.TASK_REQUESTS)
 
     def consume(self):
         self.connector.accept(self.callback)
 
     def callback(self, data: dict):
+        data = data.pop("task")
         print(f"processor {self.id} got message '{data}'")
         spend_time = randint(3, 10) * 10
-        msg = Message(message_type=MessageTypes.start, object_id=data["id"])
+        msg = Message(type=MessageTypes.start, object_id=data["id"])
         self.connector.send(msg.dict(), Routes.PROCESSING)
         for i in tqdm(range(spend_time)):
             time.sleep(0.1)
         print(f"processor {self.id} finish in {spend_time}")
         msg = Message(
-            message_type=MessageTypes.finish,
-            object_id=data["id"],
-            spend_time=spend_time,
+            type=MessageTypes.finish, object_id=data["id"], spend_time=spend_time,
         )
         self.connector.send(msg.dict(), Routes.PROCESSING)
 

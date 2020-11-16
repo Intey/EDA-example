@@ -1,0 +1,32 @@
+# datagen -> distributor -> processor
+# :all: -> statistics
+
+topology:
+  specs:
+    datagen:
+      publish:
+        topic: 'root'
+        routingKey: 'objects'
+    distributor:
+      consume:
+        topic: 'root'
+        routingKey: 'objects'
+      public:
+        topic: 'root'
+        routingKey: 'tasks'
+    processor:
+      consume:
+        topic: 'root'
+        routingKey: 'tasks'
+    statistics:
+      consume:
+        topic: 'root'
+        routingKey: '*'
+  routing:
+    subscriptions:
+      distributor:
+        - datagen
+      processor:
+        - distributor
+      statistics:
+        - "*"

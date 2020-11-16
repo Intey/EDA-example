@@ -13,6 +13,11 @@ class Task(BaseModel):
     type: str = "task"
 
 
+class Message(BaseModel):
+    type: str = "DISTRIBUTION"
+    task: Task
+
+
 class Routes:
     OBJECTS = "objects"
     TASK_REQUESTS = "tasks-requests"
@@ -27,12 +32,10 @@ class MQKafka:
         f.get(timeout=20)
 
     def accept(self, callback):
-        self.consumer = kafka.KafkaConsumer(
-            Routes.OBJECTS, enable_auto_commit=False, group_id="distributors"
-        )
+        self.consumer = kafka.KafkaConsumer(Routes.OBJECTS, group_id="distributors")
         for msg in self.consumer:
-            callback(json.loads(msg.value.decode("utf-8")))
-            self.consumer.commit()
+            object_ = json.loads(msg.value.decode("utf-8"))["object"]
+            callback(object_)
 
 
 class Distributor:
@@ -51,8 +54,9 @@ class Distributor:
     def process_message(self, data: dict):
         for i in range(REPEATS):
             task = Task(id=uuid4().hex, object=data)
+            msg = Message(task=task)
             print(f"distribute object {data} as {task}")
-            self.mq.send(task.dict(), Routes.TASK_REQUESTS)
+            self.mq.send(msg.dict(), Routes.TASK_REQUESTS)
 
 
 if __name__ == "__main__":

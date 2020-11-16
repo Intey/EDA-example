@@ -6,9 +6,10 @@ though rabbitmq or similar.
 ## How to start
 
 ```bash
-# any term
-docker run -d --hostname my-rabbit --name some-rabbit -p 5672:5672 -p 8080:15672
-rabbitmq:management
+# start zookeeper
+./bin/zookeeper-server-start.sh config/zookeeper.properties
+# start kafka
+./bin/kafka-server-start.sh config/server.properties
 
 # term 1
 cd services/datagen
@@ -19,6 +20,9 @@ QUEUE_URL='localhost:5672' uvicorn datagen:app --port 8002 --reload
 cd services/distributor
 poetry install && poetry shell
 QUEUE_URL=localhost:5672 python distributor.py
+# adjust topic partitions (for distribution messages between consumers)
+# for 2 consumers create 2 partitions, and so on
+./bin/kafka-topics.sh --topic tasks-requests --partitions 2 --alter
 
 
 # term 3

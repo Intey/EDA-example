@@ -15,12 +15,21 @@ class Object(BaseModel):
     type: str = "object"
 
 
+class Message(BaseModel):
+    type: str = "GENERATE_OBJECT"
+    object: Object
+
+
 class MyKafkaProducer:
     def __init__(self):
-        self.producer = KafkaProducer(bootstrap_servers="localhost:9092")
+        self.producer = KafkaProducer(
+            bootstrap_servers="localhost:9092",
+            value_serializer=lambda x: json.dumps(x).encode("utf8"),
+        )
 
     def send(self, obj: Object):
-        f = self.producer.send("objects", value=json.dumps(obj.dict()).encode("utf8"))
+        f = self.producer.send("objects", value=Message(object=obj).dict())
+        # sync send
         f.get(timeout=60)
 
 
